@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:image_picker/image_picker.dart';
 
-/// Face-Match clock-in gate. Verifies the agent's identity (simulated camera +
-/// AI face match) before the daily route unlocks.
+/// Face-Match clock-in gate. Captures a real selfie via the device camera, then
+/// verifies identity before the daily route unlocks.
 ///
-/// NOTE: Real biometric capture needs the device camera and an on-device face
-/// recognition model — here the scan is simulated end-to-end.
+/// NOTE: the camera capture is real; the face *recognition* step on top of the
+/// photo is simulated, as identity matching needs a trained on-device model.
 class ClockInScreen extends StatefulWidget {
   const ClockInScreen({super.key, required this.onClockedIn});
 
@@ -20,17 +21,35 @@ enum _Phase { idle, scanning, matched }
 
 class _ClockInScreenState extends State<ClockInScreen> {
   _Phase _phase = _Phase.idle;
+  Uint8List? _photo;
 
   Future<void> _startScan() async {
     setState(() => _phase = _Phase.scanning);
     HapticFeedback.lightImpact();
-    await Future.delayed(const Duration(milliseconds: 2200));
+    // Capture a real selfie concurrently with the verification animation.
+    _capturePhoto();
+    await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
     setState(() => _phase = _Phase.matched);
     HapticFeedback.heavyImpact();
     await Future.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
     widget.onClockedIn();
+  }
+
+  Future<void> _capturePhoto() async {
+    try {
+      final shot = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+        maxWidth: 600,
+      );
+      if (shot == null) return;
+      final bytes = await shot.readAsBytes();
+      if (mounted) setState(() => _photo = bytes);
+    } catch (_) {
+      // Camera unavailable (e.g. permission denied) — scan only.
+    }
   }
 
   @override
@@ -81,13 +100,23 @@ class _ClockInScreenState extends State<ClockInScreen> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    HugeIcon(
-                      icon: matched
-                          ? HugeIcons.strokeRoundedCheckmarkCircle01
-                          : HugeIcons.strokeRoundedUserCircle,
-                      color: matched ? Colors.green : Colors.white54,
-                      size: 96,
-                    ),
+                    if (_photo != null)
+                      ClipOval(
+                        child: Image.memory(
+                          _photo!,
+                          width: 214,
+                          height: 214,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else
+                      HugeIcon(
+                        icon: matched
+                            ? HugeIcons.strokeRoundedCheckmarkCircle01
+                            : HugeIcons.strokeRoundedUserCircle,
+                        color: matched ? Colors.green : Colors.white54,
+                        size: 96,
+                      ),
                     if (scanning)
                       const SizedBox(
                         width: 200,

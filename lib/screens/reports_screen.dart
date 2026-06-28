@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../models/models.dart';
+import '../utils/format.dart';
+import '../widgets/charts.dart';
+import '../widgets/sync_status_button.dart';
 
 /// Daily Sales Report (DSR) + gamified leaderboard.
 class ReportsScreen extends StatelessWidget {
@@ -28,7 +31,10 @@ class ReportsScreen extends StatelessWidget {
         orElse: () => SampleData.leaderboard.first);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reports')),
+      appBar: AppBar(
+        title: const Text('Reports'),
+        actions: const [SyncStatusButton()],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -52,15 +58,54 @@ class ReportsScreen extends StatelessWidget {
             crossAxisSpacing: 12,
             childAspectRatio: 1.5,
             children: [
-              _metric('Booked value', '\$${booked.toStringAsFixed(0)}',
+              _metric('Booked value', fmtUgx(booked),
                   HugeIcons.strokeRoundedDollarCircle, Colors.green),
-              _metric('Cash collected', '\$${cashCollected.toStringAsFixed(0)}',
+              _metric('Cash collected', fmtUgx(cashCollected),
                   HugeIcons.strokeRoundedMoneyBag02, Colors.teal),
               _metric('Strike rate', '${(strikeRate * 100).round()}%',
                   HugeIcons.strokeRoundedTarget01, Colors.orange),
               _metric('Calls', '$productiveCalls / $totalCalls',
                   HugeIcons.strokeRoundedStore01, Colors.blueAccent),
             ],
+          ),
+          const SizedBox(height: 12),
+          _chartCard(
+            'Call Productivity',
+            DonutChart(
+              centerValue: '${(strikeRate * 100).round()}%',
+              centerLabel: 'strike',
+              segments: [
+                ChartSegment(
+                    'Productive', productiveCalls.toDouble(), Colors.green),
+                ChartSegment('Skipped / pending',
+                    (totalCalls - productiveCalls).toDouble(), Colors.grey),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _chartCard(
+            'Booked Value — Last 7 Days',
+            MiniBarChart(
+              values: SampleData.weeklyBooked,
+              labels: const ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _chartCard(
+            'Shelf Share vs Competitor',
+            DonutChart(
+              centerValue:
+                  '${((1 - SampleData.planogram.competitorShare) * 100).round()}%',
+              centerLabel: 'ours',
+              segments: [
+                ChartSegment(
+                    'Our facings',
+                    (1 - SampleData.planogram.competitorShare) * 100,
+                    Colors.orange),
+                ChartSegment('Competitor',
+                    SampleData.planogram.competitorShare * 100, Colors.redAccent),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           Card(
@@ -138,6 +183,25 @@ class ReportsScreen extends StatelessWidget {
       for (var i = 0; i < entries.length; i++)
         _LeaderRow(rank: i + 1, entry: entries[i]),
     ];
+  }
+
+  Widget _chartCard(String title, Widget chart) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+            chart,
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _metric(String label, String value, List<List<dynamic>> icon,

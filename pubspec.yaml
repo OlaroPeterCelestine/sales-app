@@ -37,6 +37,10 @@ dependencies:
 
   # Icon set used throughout the app.
   hugeicons: ^1.1.7
+  fl_chart: ^1.2.0
+  shared_preferences: ^2.5.5
+  geolocator: ^14.0.3
+  image_picker: ^1.2.2
 
 dev_dependencies:
   flutter_test:

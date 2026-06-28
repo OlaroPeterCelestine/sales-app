@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../models/models.dart';
+import '../utils/format.dart';
 
 /// Voice ordering sheet — natural-language order capture in English, Luganda
 /// or Swahili. Trade-promotion rules (BOGO) are auto-applied to the parsed
@@ -49,10 +50,10 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet> {
 
   /// Known SKUs the parser can resolve (keyword → name + unit price).
   static const _catalog = {
-    'bugisu': OrderItem(name: 'Bugisu AA 500g (case)', quantity: 1, unitPrice: 18.75),
-    'energy': OrderItem(name: 'Energy Drink (case)', quantity: 1, unitPrice: 22.0),
-    'cola': OrderItem(name: 'Cola 1L (case)', quantity: 1, unitPrice: 12.5),
-    'water': OrderItem(name: 'Spring Water 500ml (case)', quantity: 1, unitPrice: 8.0),
+    'bugisu': OrderItem(name: 'Bugisu AA 500g (case)', quantity: 1, unitPrice: 68000),
+    'energy': OrderItem(name: 'Energy Drink (case)', quantity: 1, unitPrice: 85000),
+    'cola': OrderItem(name: 'Cola 1L (case)', quantity: 1, unitPrice: 45000),
+    'water': OrderItem(name: 'Spring Water 500ml (case)', quantity: 1, unitPrice: 30000),
   };
 
   /// SKUs that carry a Buy-One-Get-One trade promotion.
@@ -203,9 +204,7 @@ class _VoiceOrderSheetState extends State<VoiceOrderSheet> {
                       child: Text('${l.item.quantity} × ${l.item.name}'),
                     ),
                     Text(
-                      l.item.unitPrice == 0
-                          ? 'FREE'
-                          : '\$${l.item.total.toStringAsFixed(2)}',
+                      l.item.unitPrice == 0 ? 'FREE' : fmtUgx(l.item.total),
                       style: TextStyle(
                         color: l.isPromo ? Colors.green : null,
                         fontWeight: FontWeight.w600,

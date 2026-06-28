@@ -81,6 +81,8 @@ class RouteStop {
     required this.eta,
     required this.tier,
     required this.distanceMeters,
+    required this.lat,
+    required this.lng,
     this.budgetMinutes = 15,
     this.status = StopStatus.pending,
   });
@@ -89,6 +91,10 @@ class RouteStop {
   final String address;
   final String eta;
   final OutletTier tier;
+
+  /// Outlet GPS coordinates, used to compute the live geofence distance.
+  final double lat;
+  final double lng;
 
   /// Simulated current distance from the outlet's coordinates (metres).
   /// Geofenced check-in unlocks at or below [geofenceRadiusMeters].
@@ -157,6 +163,15 @@ class OrderItem {
   final double unitPrice;
 
   double get total => quantity * unitPrice;
+
+  Map<String, dynamic> toJson() =>
+      {'name': name, 'quantity': quantity, 'unitPrice': unitPrice};
+
+  factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
+        name: json['name'] as String,
+        quantity: json['quantity'] as int,
+        unitPrice: (json['unitPrice'] as num).toDouble(),
+      );
 }
 
 /// A customer order.
@@ -177,6 +192,24 @@ class Order {
 
   double get total => items.fold(0, (sum, item) => sum + item.total);
   int get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'customerName': customerName,
+        'date': date.toIso8601String(),
+        'status': status.index,
+        'items': items.map((i) => i.toJson()).toList(),
+      };
+
+  factory Order.fromJson(Map<String, dynamic> json) => Order(
+        id: json['id'] as String,
+        customerName: json['customerName'] as String,
+        date: DateTime.parse(json['date'] as String),
+        status: OrderStatus.values[json['status'] as int],
+        items: (json['items'] as List)
+            .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
 }
 
 /// In-memory sample data so the app runs out of the box.
@@ -188,6 +221,8 @@ class SampleData {
       eta: '09:00 AM',
       tier: OutletTier.mt,
       distanceMeters: 0,
+      lat: 0.3155,
+      lng: 32.5811,
       budgetMinutes: 25,
       status: StopStatus.visited,
     ),
@@ -197,6 +232,8 @@ class SampleData {
       eta: '10:30 AM',
       tier: OutletTier.horeca,
       distanceMeters: 0,
+      lat: 0.3340,
+      lng: 32.5970,
       budgetMinutes: 20,
       status: StopStatus.visited,
     ),
@@ -206,6 +243,8 @@ class SampleData {
       eta: '11:45 AM',
       tier: OutletTier.gt,
       distanceMeters: 18,
+      lat: 0.2935,
+      lng: 32.6010,
       budgetMinutes: 12,
     ),
     RouteStop(
@@ -214,6 +253,8 @@ class SampleData {
       eta: '01:15 PM',
       tier: OutletTier.gt,
       distanceMeters: 240,
+      lat: 0.3340,
+      lng: 32.5700,
       budgetMinutes: 12,
     ),
     RouteStop(
@@ -222,6 +263,8 @@ class SampleData {
       eta: '02:30 PM',
       tier: OutletTier.mt,
       distanceMeters: 1100,
+      lat: 0.3270,
+      lng: 32.5930,
       budgetMinutes: 25,
     ),
   ];
@@ -284,8 +327,8 @@ class SampleData {
       date: DateTime(2026, 6, 28, 9, 20),
       status: OrderStatus.delivered,
       items: const [
-        OrderItem(name: 'Cola 1L (case)', quantity: 10, unitPrice: 12.5),
-        OrderItem(name: 'Spring Water 500ml (case)', quantity: 6, unitPrice: 8.0),
+        OrderItem(name: 'Cola 1L (case)', quantity: 10, unitPrice: 45000),
+        OrderItem(name: 'Spring Water 500ml (case)', quantity: 6, unitPrice: 30000),
       ],
     ),
     Order(
@@ -294,8 +337,8 @@ class SampleData {
       date: DateTime(2026, 6, 28, 10, 50),
       status: OrderStatus.confirmed,
       items: const [
-        OrderItem(name: 'Energy Drink (case)', quantity: 4, unitPrice: 22.0),
-        OrderItem(name: 'Juice Pack (case)', quantity: 8, unitPrice: 15.0),
+        OrderItem(name: 'Energy Drink (case)', quantity: 4, unitPrice: 85000),
+        OrderItem(name: 'Juice Pack (case)', quantity: 8, unitPrice: 52000),
       ],
     ),
     Order(
@@ -304,7 +347,7 @@ class SampleData {
       date: DateTime(2026, 6, 28, 11, 5),
       status: OrderStatus.pending,
       items: const [
-        OrderItem(name: 'Bugisu AA 500g (case)', quantity: 12, unitPrice: 18.75),
+        OrderItem(name: 'Bugisu AA 500g (case)', quantity: 12, unitPrice: 68000),
       ],
     ),
     Order(
@@ -313,9 +356,14 @@ class SampleData {
       date: DateTime(2026, 6, 27, 15, 40),
       status: OrderStatus.cancelled,
       items: const [
-        OrderItem(name: 'Bottled Tea (case)', quantity: 5, unitPrice: 14.0),
+        OrderItem(name: 'Bottled Tea (case)', quantity: 5, unitPrice: 48000),
       ],
     ),
+  ];
+
+  /// Booked value (UGX) for the trailing 7 days, oldest first — for trend chart.
+  static const List<double> weeklyBooked = [
+    820000, 1140000, 760000, 1320000, 980000, 1450000, 1218000,
   ];
 }
 

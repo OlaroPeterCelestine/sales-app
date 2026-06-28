@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../models/models.dart';
+import '../services/store.dart';
+import '../utils/format.dart';
 import '../widgets/voice_order_sheet.dart';
 
 /// List of orders with status filtering and a detail view.
@@ -79,7 +81,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '\$${order.total.toStringAsFixed(2)}',
+                                fmtUgx(order.total),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold),
                               ),
@@ -164,7 +166,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       Expanded(
                         child: Text('${item.quantity} × ${item.name}'),
                       ),
-                      Text('\$${item.total.toStringAsFixed(2)}'),
+                      Text(fmtUgx(item.total)),
                     ],
                   ),
                 ),
@@ -179,7 +181,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   Text(
-                    '\$${order.total.toStringAsFixed(2)}',
+                    fmtUgx(order.total),
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 16),
                   ),
@@ -201,9 +203,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
     if (order == null) return;
     setState(() => SampleData.orders.add(order));
+    Store.instance.persistOrders();
+    Store.instance.enqueue('order', 'Voice order ${order.id}');
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${order.id} captured by voice')),
+      SnackBar(content: Text('${order.id} captured by voice · queued for DMS')),
     );
   }
 
@@ -214,9 +218,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
     if (order == null) return;
     setState(() => SampleData.orders.add(order));
+    Store.instance.persistOrders();
+    Store.instance.enqueue('order', 'Order ${order.id} · ${order.customerName}');
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${order.id} created for ${order.customerName}')),
+      SnackBar(content: Text('${order.id} created · queued for DMS')),
     );
   }
 
@@ -323,7 +329,7 @@ class _NewOrderDialogState extends State<_NewOrderDialog> {
                         decimal: true),
                     decoration: const InputDecoration(
                       labelText: 'Unit price',
-                      prefixText: '\$',
+                      prefixText: 'UGX ',
                     ),
                     validator: (v) {
                       final n = double.tryParse(v ?? '');

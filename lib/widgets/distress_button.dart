@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../services/store.dart';
+
 /// The emergency "Action Button". A triple-tap within a short window sends a
 /// distress alert (GPS + last-captured data) to dispatch.
 ///
@@ -46,6 +48,7 @@ class _DistressButtonState extends State<DistressButton> {
 
   void _fireDistress() {
     HapticFeedback.heavyImpact();
+    Store.instance.enqueue('distress', 'Distress alert · GPS dispatched');
     showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(

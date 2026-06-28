@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>SAFARI Field uses the camera for clock-in face capture and shelf/competitor photo audits.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>SAFARI Field uses your location for geofenced outlet check-ins.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SAFARI Field may attach photos captured during retail audits.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

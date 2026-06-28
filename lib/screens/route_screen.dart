@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../models/models.dart';
+import '../services/location_service.dart';
+import '../services/store.dart';
 import 'visit_screen.dart';
 
 /// Smart Beat Map: sequenced stops with tiering, geofenced check-in and ETAs.
@@ -19,12 +21,17 @@ class _RouteScreenState extends State<RouteScreen> {
   void _setStatus(RouteStop stop, StopStatus status) {
     HapticFeedback.selectionClick();
     setState(() => stop.status = status);
+    Store.instance.persistStops();
+    if (status == StopStatus.skipped) {
+      Store.instance.enqueue('visit', 'Skipped ${stop.customerName}');
+    }
   }
 
   /// Simulates the agent arriving on-site so the geofence (50 m) unlocks.
   void _simulateArrival(RouteStop stop) {
     HapticFeedback.lightImpact();
     setState(() => stop.distanceMeters = 12);
+    Store.instance.persistStops();
   }
 
   Future<void> _checkIn(RouteStop stop) async {
@@ -35,6 +42,29 @@ class _RouteScreenState extends State<RouteScreen> {
     if (mounted) setState(() {});
   }
 
+  bool _locating = false;
+
+  /// Reads live GPS and recomputes each outlet's geofence distance.
+  Future<void> _refreshGps() async {
+    setState(() => _locating = true);
+    final pos = await LocationService.instance.current();
+    if (!mounted) return;
+    setState(() => _locating = false);
+    if (pos == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Location unavailable — enable GPS/permission, '
+            'or use "Simulate arrival"'),
+      ));
+      return;
+    }
+    setState(() => LocationService.instance.updateDistances(pos));
+    Store.instance.persistStops();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Location updated · '
+          '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}'),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final visited =
@@ -43,6 +73,19 @@ class _RouteScreenState extends State<RouteScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Today's Route"),
+        actions: [
+          IconButton(
+            tooltip: 'Update GPS location',
+            onPressed: _locating ? null : _refreshGps,
+            icon: _locating
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const HugeIcon(icon: HugeIcons.strokeRoundedLocation01),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(28),
           child: Padding(

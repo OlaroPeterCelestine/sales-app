@@ -7,10 +7,13 @@ import 'screens/orders_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/route_screen.dart';
 import 'screens/settings_screen.dart';
+import 'services/store.dart';
 import 'widgets/distress_button.dart';
 import 'widgets/mobile_only.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Store.instance.init();
   runApp(const SalesApp());
 }
 
@@ -115,12 +118,12 @@ class RootNavigation extends StatefulWidget {
 class _RootNavigationState extends State<RootNavigation> {
   int _index = 0;
 
-  static const _screens = [
-    HomeScreen(),
-    RouteScreen(),
-    OrdersScreen(),
-    ReportsScreen(),
-    SettingsScreen(),
+  late final List<Widget> _screens = [
+    HomeScreen(onSelectTab: (i) => setState(() => _index = i)),
+    const RouteScreen(),
+    const OrdersScreen(),
+    const ReportsScreen(),
+    const SettingsScreen(),
   ];
 
   @override

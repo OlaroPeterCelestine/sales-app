@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/models.dart';
+import '../services/store.dart';
 
 /// In-outlet visit + retail execution audit.
 ///
@@ -44,9 +46,19 @@ class _VisitScreenState extends State<VisitScreen> {
   }
 
   Future<void> _runPlanogramScan() async {
+    // Capture a real shelf photo, then run the (simulated) vision analysis.
+    try {
+      await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1280,
+      );
+    } catch (_) {
+      // Camera unavailable — continue with the analysis demo.
+    }
+    if (!mounted) return;
     setState(() => _scanning = true);
     HapticFeedback.lightImpact();
-    await Future.delayed(const Duration(milliseconds: 1800));
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
     setState(() {
       _scanning = false;
@@ -58,6 +70,9 @@ class _VisitScreenState extends State<VisitScreen> {
   void _completeVisit() {
     HapticFeedback.heavyImpact();
     setState(() => widget.stop.status = StopStatus.visited);
+    Store.instance.persistStops();
+    Store.instance.persistStock();
+    Store.instance.enqueue('visit', 'Visit complete · ${widget.stop.customerName}');
     Navigator.of(context).pop(true);
   }
 

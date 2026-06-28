@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../services/store.dart';
+
 /// App settings and profile. Toggles are local UI state for the demo.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,9 +13,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notifications = true;
-  bool _offlineSync = false;
   bool _darkMode = true;
-  String _currency = 'USD (\$)';
+  String _currency = 'UGX (USh)';
 
   @override
   Widget build(BuildContext context) {
@@ -46,12 +47,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _notifications,
             onChanged: (v) => setState(() => _notifications = v),
           ),
-          SwitchListTile(
-            secondary: const HugeIcon(icon: HugeIcons.strokeRoundedRefresh),
-            title: const Text('Offline Sync'),
-            subtitle: const Text('Cache data for areas with poor signal'),
-            value: _offlineSync,
-            onChanged: (v) => setState(() => _offlineSync = v),
+          ListenableBuilder(
+            listenable: Store.instance,
+            builder: (context, _) => SwitchListTile(
+              secondary: HugeIcon(
+                icon: Store.instance.online
+                    ? HugeIcons.strokeRoundedCloudUpload
+                    : HugeIcons.strokeRoundedCloudOff,
+              ),
+              title: const Text('Work Offline'),
+              subtitle: Text(
+                Store.instance.online
+                    ? 'Online · ${Store.instance.pendingCount} queued for DMS'
+                    : 'Offline · holding ${Store.instance.pendingCount} events to replay',
+              ),
+              value: !Store.instance.online,
+              onChanged: (v) => Store.instance.setOnline(!v),
+            ),
           ),
           SwitchListTile(
             secondary: const HugeIcon(icon: HugeIcons.strokeRoundedMoon02),
