@@ -1,18 +1,39 @@
-# sales_app
+# SAFARI Field
 
-A new Flutter project.
+Mobile-first sales-force app for Route Sales Representatives (Flutter, dark + orange UI, mobile-only). Localised for Kampala, Uganda.
 
-## Getting Started
+## Features implemented (prototype)
 
-This project is a starting point for a Flutter application.
+| PRD area | Feature | Status |
+|---|---|---|
+| Attendance & Security | Face-Match clock-in gate | ✅ simulated |
+| Attendance & Security | Distress triple-tap Action Button (GPS + last data → dispatch) | ✅ simulated |
+| Route & Visit | Smart Beat Map with tiering (HoReCa / GT / MT) and ETAs | ✅ |
+| Route & Visit | Geofenced check-in (50 m radius) | ✅ simulated GPS |
+| Route & Visit | Visit timer vs tier time-budget | ✅ |
+| Retail Execution | AI Planogram audit + gap analysis + competitor shelf share | ✅ simulated vision |
+| Retail Execution | Stock-on-Hand with Critical Stock flagging | ✅ |
+| Retail Execution | Competitor intel (OCR price/promo) | ✅ simulated OCR |
+| Order Management | Voice ordering (English / Luganda / Swahili NLP) | ✅ simulated STT |
+| Order Management | TPM promo logic (BOGO auto-apply) | ✅ |
+| Reporting | DSR — strike rate, booked value, cash collected | ✅ |
+| Reporting | Leaderboard + Day Score + streaks | ✅ |
+| Design | High-contrast dark mode, haptics, bottom navigation | ✅ |
 
-A few resources to get you started if this is your first Flutter project:
+## Still needs real integration
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+The hardware/AI-dependent features are wired end-to-end with realistic simulations, but production requires:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# sales-app
+- On-device **face recognition** model + camera capture (clock-in).
+- **Speech-to-text** engine + NLP intent parser for voice ordering.
+- **Image-recognition** model for planogram facing detection.
+- **OCR** pipeline for competitor price capture.
+- Live **GPS / geofencing** and a **DMS sync queue** with offline-first persistence (currently in-memory).
+- Backend dispatch channel for distress alerts.
+
+## Run
+
+```bash
+flutter run            # device / emulator
+flutter build web      # PWA build → build/web
+```

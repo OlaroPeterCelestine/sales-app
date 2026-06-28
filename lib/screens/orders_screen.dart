@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../models/models.dart';
+import '../widgets/voice_order_sheet.dart';
 
 /// List of orders with status filtering and a detail view.
 class OrdersScreen extends StatefulWidget {
@@ -27,7 +28,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final orders = _orders;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Orders')),
+      appBar: AppBar(
+        title: const Text('Orders'),
+        actions: [
+          IconButton(
+            tooltip: 'Voice order',
+            onPressed: _showVoiceOrder,
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedMic01),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           SizedBox(
@@ -179,6 +189,21 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _showVoiceOrder() async {
+    final order = await showModalBottomSheet<Order>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => const VoiceOrderSheet(),
+    );
+    if (order == null) return;
+    setState(() => SampleData.orders.add(order));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${order.id} captured by voice')),
     );
   }
 

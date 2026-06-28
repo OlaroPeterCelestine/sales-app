@@ -79,13 +79,69 @@ class RouteStop {
     required this.customerName,
     required this.address,
     required this.eta,
+    required this.tier,
+    required this.distanceMeters,
+    this.budgetMinutes = 15,
     this.status = StopStatus.pending,
   });
 
   final String customerName;
   final String address;
   final String eta;
+  final OutletTier tier;
+
+  /// Simulated current distance from the outlet's coordinates (metres).
+  /// Geofenced check-in unlocks at or below [geofenceRadiusMeters].
+  double distanceMeters;
+
+  /// Allocated time-on-site budget for this outlet tier.
+  final int budgetMinutes;
+
   StopStatus status;
+
+  /// Whether the agent is inside the 50 m geofence and may check in.
+  bool get withinGeofence => distanceMeters <= geofenceRadiusMeters;
+
+  static const double geofenceRadiusMeters = 50;
+}
+
+/// Retail outlet channel/tier for beat mapping.
+enum OutletTier { horeca, gt, mt }
+
+extension OutletTierInfo on OutletTier {
+  /// Short code shown on the beat list.
+  String get code {
+    switch (this) {
+      case OutletTier.horeca:
+        return 'HoReCa';
+      case OutletTier.gt:
+        return 'GT';
+      case OutletTier.mt:
+        return 'MT';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case OutletTier.horeca:
+        return 'Hotel / Restaurant / Café';
+      case OutletTier.gt:
+        return 'General Trade';
+      case OutletTier.mt:
+        return 'Modern Trade';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case OutletTier.horeca:
+        return Colors.purpleAccent;
+      case OutletTier.gt:
+        return Colors.tealAccent;
+      case OutletTier.mt:
+        return Colors.amberAccent;
+    }
+  }
 }
 
 /// A single line item within an order.
@@ -127,39 +183,104 @@ class Order {
 class SampleData {
   static final List<RouteStop> route = [
     RouteStop(
-      customerName: 'Acme Grocers',
-      address: '12 Market St, Downtown',
+      customerName: 'Nakasero Supermarket',
+      address: 'Kampala Rd, Nakasero',
       eta: '09:00 AM',
+      tier: OutletTier.mt,
+      distanceMeters: 0,
+      budgetMinutes: 25,
       status: StopStatus.visited,
     ),
     RouteStop(
-      customerName: 'Bright Mart',
-      address: '88 River Rd, Westside',
+      customerName: 'Café Javas Kololo',
+      address: '7 Acacia Ave, Kololo',
       eta: '10:30 AM',
+      tier: OutletTier.horeca,
+      distanceMeters: 0,
+      budgetMinutes: 20,
       status: StopStatus.visited,
     ),
     RouteStop(
-      customerName: 'Corner Store Plus',
-      address: '4 Hill Ave, Uptown',
+      customerName: 'Kabalagala Duka',
+      address: 'Ggaba Rd, Kabalagala',
       eta: '11:45 AM',
+      tier: OutletTier.gt,
+      distanceMeters: 18,
+      budgetMinutes: 12,
     ),
     RouteStop(
-      customerName: 'Daily Fresh Foods',
-      address: '210 Oak Blvd, Eastend',
+      customerName: 'Wandegeya Mini Mart',
+      address: 'Bombo Rd, Wandegeya',
       eta: '01:15 PM',
+      tier: OutletTier.gt,
+      distanceMeters: 240,
+      budgetMinutes: 12,
     ),
     RouteStop(
-      customerName: 'Evergreen Supplies',
-      address: '57 Pine Ln, Northgate',
+      customerName: 'Garden City Shoprite',
+      address: 'Yusuf Lule Rd, Nakasero',
       eta: '02:30 PM',
-      status: StopStatus.skipped,
+      tier: OutletTier.mt,
+      distanceMeters: 1100,
+      budgetMinutes: 25,
     ),
   ];
+
+  /// SAFARI Coach contextual upsell suggestions per outlet.
+  static const Map<String, String> coachTips = {
+    'Kabalagala Duka':
+        'Last 3 visits skipped Bugisu AA. Suggest a 6-pack — 80% accept rate here.',
+    'Wandegeya Mini Mart':
+        'Energy Drink velocity up 22%. Push the BOGO promo before competitor restocks.',
+    'Garden City Shoprite':
+        'MT outlet — propose end-cap facing for the new Juice Pack SKU.',
+  };
+
+  /// Leaderboard standings driven by "Day Score".
+  static const List<LeaderboardEntry> leaderboard = [
+    LeaderboardEntry(name: 'Sarah N.', dayScore: 94, streakDays: 12),
+    LeaderboardEntry(name: 'Peter Olaro', dayScore: 88, streakDays: 7, isMe: true),
+    LeaderboardEntry(name: 'David K.', dayScore: 81, streakDays: 4),
+    LeaderboardEntry(name: 'Grace A.', dayScore: 76, streakDays: 9),
+    LeaderboardEntry(name: 'Moses T.', dayScore: 63, streakDays: 2),
+  ];
+
+  /// Stock-on-hand lines captured during the audit.
+  static final List<StockLine> stockOnHand = [
+    StockLine(sku: 'Bugisu AA 500g', onHand: 4, reorderPoint: 12),
+    StockLine(sku: 'Cola 1L', onHand: 26, reorderPoint: 10),
+    StockLine(sku: 'Energy Drink 250ml', onHand: 2, reorderPoint: 8),
+    StockLine(sku: 'Spring Water 500ml', onHand: 40, reorderPoint: 15),
+  ];
+
+  /// Competitor price/promo intel captured via OCR scan.
+  static const List<CompetitorIntel> competitorIntel = [
+    CompetitorIntel(
+      brand: 'RivalCo Coffee',
+      product: 'Robusta 500g',
+      price: 'UGX 11,500',
+      note: 'End-cap promo: buy 2 get mug',
+    ),
+    CompetitorIntel(
+      brand: 'PowerMax',
+      product: 'Energy 250ml',
+      price: 'UGX 2,800',
+      note: '15% below our shelf price',
+    ),
+  ];
+
+  /// Today's planogram audit result (simulated AI gap analysis).
+  static const PlanogramAudit planogram = PlanogramAudit(
+    detectedFacings: 14,
+    targetFacings: 20,
+    competitorShare: 0.38,
+    gaps: ['Bugisu AA out of eye-level', 'Juice Pack missing from cold shelf'],
+  );
 
   static final List<Order> orders = [
     Order(
       id: 'ORD-1042',
-      customerName: 'Acme Grocers',
+      customerName: 'Nakasero Supermarket',
       date: DateTime(2026, 6, 28, 9, 20),
       status: OrderStatus.delivered,
       items: const [
@@ -169,7 +290,7 @@ class SampleData {
     ),
     Order(
       id: 'ORD-1043',
-      customerName: 'Bright Mart',
+      customerName: 'Café Javas Kololo',
       date: DateTime(2026, 6, 28, 10, 50),
       status: OrderStatus.confirmed,
       items: const [
@@ -179,16 +300,16 @@ class SampleData {
     ),
     Order(
       id: 'ORD-1044',
-      customerName: 'Corner Store Plus',
+      customerName: 'Kabalagala Duka',
       date: DateTime(2026, 6, 28, 11, 5),
       status: OrderStatus.pending,
       items: const [
-        OrderItem(name: 'Snack Box (case)', quantity: 12, unitPrice: 18.75),
+        OrderItem(name: 'Bugisu AA 500g (case)', quantity: 12, unitPrice: 18.75),
       ],
     ),
     Order(
       id: 'ORD-1041',
-      customerName: 'Daily Fresh Foods',
+      customerName: 'Wandegeya Mini Mart',
       date: DateTime(2026, 6, 27, 15, 40),
       status: OrderStatus.cancelled,
       items: const [
@@ -196,4 +317,67 @@ class SampleData {
       ],
     ),
   ];
+}
+
+/// A peer ranking row on the gamified leaderboard.
+class LeaderboardEntry {
+  const LeaderboardEntry({
+    required this.name,
+    required this.dayScore,
+    required this.streakDays,
+    this.isMe = false,
+  });
+
+  final String name;
+  final int dayScore;
+  final int streakDays;
+  final bool isMe;
+}
+
+/// A stock-on-hand line captured during the audit.
+class StockLine {
+  StockLine({
+    required this.sku,
+    required this.onHand,
+    required this.reorderPoint,
+  });
+
+  final String sku;
+  int onHand;
+  final int reorderPoint;
+
+  /// Flagged when inventory has dropped to/below the reorder point.
+  bool get isCritical => onHand <= reorderPoint;
+}
+
+/// Competitor price/promo captured via OCR scanning.
+class CompetitorIntel {
+  const CompetitorIntel({
+    required this.brand,
+    required this.product,
+    required this.price,
+    required this.note,
+  });
+
+  final String brand;
+  final String product;
+  final String price;
+  final String note;
+}
+
+/// Result of the AI planogram audit (facings + gap analysis).
+class PlanogramAudit {
+  const PlanogramAudit({
+    required this.detectedFacings,
+    required this.targetFacings,
+    required this.competitorShare,
+    required this.gaps,
+  });
+
+  final int detectedFacings;
+  final int targetFacings;
+  final double competitorShare;
+  final List<String> gaps;
+
+  double get compliance => detectedFacings / targetFacings;
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../models/models.dart';
+import 'visit_screen.dart';
 
-/// Ordered list of customer stops for the day, with quick status actions.
+/// Smart Beat Map: sequenced stops with tiering, geofenced check-in and ETAs.
 class RouteScreen extends StatefulWidget {
   const RouteScreen({super.key});
 
@@ -15,7 +17,22 @@ class _RouteScreenState extends State<RouteScreen> {
   List<RouteStop> get _stops => SampleData.route;
 
   void _setStatus(RouteStop stop, StopStatus status) {
+    HapticFeedback.selectionClick();
     setState(() => stop.status = status);
+  }
+
+  /// Simulates the agent arriving on-site so the geofence (50 m) unlocks.
+  void _simulateArrival(RouteStop stop) {
+    HapticFeedback.lightImpact();
+    setState(() => stop.distanceMeters = 12);
+  }
+
+  Future<void> _checkIn(RouteStop stop) async {
+    HapticFeedback.mediumImpact();
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => VisitScreen(stop: stop)),
+    );
+    if (mounted) setState(() {});
   }
 
   @override
@@ -67,12 +84,20 @@ class _RouteScreenState extends State<RouteScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              stop.customerName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    stop.customerName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                _TierBadge(tier: stop.tier),
+                              ],
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -96,36 +121,121 @@ class _RouteScreenState extends State<RouteScreen> {
                     ],
                   ),
                   const Divider(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton.icon(
-                        onPressed: () => _setStatus(stop, StopStatus.skipped),
-                        icon: const HugeIcon(
-                          icon: HugeIcons.strokeRoundedMinusSignCircle,
-                          size: 18,
-                        ),
-                        label: const Text('Skip'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.grey[400],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton.icon(
-                        onPressed: () => _setStatus(stop, StopStatus.visited),
-                        icon: const HugeIcon(
-                          icon: HugeIcons.strokeRoundedTick02,
-                          size: 18,
-                        ),
-                        label: const Text('Mark visited'),
-                      ),
-                    ],
-                  ),
+                  _geofenceRow(stop),
                 ],
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _geofenceRow(RouteStop stop) {
+    // Completed/skipped stops just show their resolved state.
+    if (stop.status != StopStatus.pending) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton.icon(
+            onPressed: () => _checkIn(stop),
+            icon: const HugeIcon(
+                icon: HugeIcons.strokeRoundedNote01, size: 18),
+            label: const Text('Open visit'),
+          ),
+        ],
+      );
+    }
+
+    final dist = stop.distanceMeters;
+    final within = stop.withinGeofence;
+    final distLabel =
+        dist >= 1000 ? '${(dist / 1000).toStringAsFixed(1)} km' : '${dist.round()} m';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            HugeIcon(
+              icon: within
+                  ? HugeIcons.strokeRoundedLocationCheck01
+                  : HugeIcons.strokeRoundedLocation01,
+              size: 16,
+              color: within ? Colors.green : Colors.grey[500],
+            ),
+            const SizedBox(width: 6),
+            Text(
+              within
+                  ? 'Inside 50 m geofence · check-in unlocked'
+                  : '$distLabel away · within 50 m to check in',
+              style: TextStyle(
+                fontSize: 12,
+                color: within ? Colors.green : Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton.icon(
+              onPressed: () => _setStatus(stop, StopStatus.skipped),
+              icon: const HugeIcon(
+                icon: HugeIcons.strokeRoundedMinusSignCircle,
+                size: 18,
+              ),
+              label: const Text('Skip'),
+              style: TextButton.styleFrom(foregroundColor: Colors.grey[400]),
+            ),
+            const SizedBox(width: 8),
+            if (within)
+              FilledButton.icon(
+                onPressed: () => _checkIn(stop),
+                icon: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedLocationCheck01,
+                  size: 18,
+                ),
+                label: const Text('Check in'),
+              )
+            else
+              OutlinedButton.icon(
+                onPressed: () => _simulateArrival(stop),
+                icon: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedNavigation03,
+                  size: 18,
+                ),
+                label: const Text('Simulate arrival'),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Small coloured chip showing an outlet's trade tier.
+class _TierBadge extends StatelessWidget {
+  const _TierBadge({required this.tier});
+
+  final OutletTier tier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: tier.color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        tier.code,
+        style: TextStyle(
+          color: tier.color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
