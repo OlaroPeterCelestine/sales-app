@@ -22,14 +22,21 @@ Mobile-first sales-force app for Route Sales Representatives (Flutter, dark + or
 
 ## Still needs real integration
 
-The hardware/AI-dependent features are wired end-to-end with realistic simulations, but production requires:
+Now **real** (no longer simulated):
 
-- On-device **face recognition** model + camera capture (clock-in).
-- **Speech-to-text** engine + NLP intent parser for voice ordering.
-- **Image-recognition** model for planogram facing detection.
+- **Offline-first persistence + DMS sync queue** — `shared_preferences`; state survives reload, offline events queue and replay, with a Work-Offline toggle and sync badge.
+- **Live GPS geofencing** — `geolocator` computes real distance to outlet coordinates ("Simulate arrival" kept as a fallback for demos away from Kampala).
+- **Camera capture** — `image_picker` takes a real selfie at clock-in and a real shelf photo for the planogram audit.
+- **Charts** — `fl_chart` pie/donut + bar across Home and Reports.
+- **Currency** — UGX everywhere.
+
+Still needs a trained model or a server (cannot live inside a Flutter/web app):
+
+- On-device **face recognition** matching (capture is real; identity match is simulated).
+- **Image-recognition** model for planogram facing detection (photo is real; analysis is simulated).
+- **Speech-to-text + NLP** for voice ordering (parsing is local/simulated).
 - **OCR** pipeline for competitor price capture.
-- Live **GPS / geofencing** and a **DMS sync queue** with offline-first persistence (currently in-memory).
-- Backend dispatch channel for distress alerts.
+- **DMS backend** endpoint for sync replay + distress dispatch (queue is real; the server is not).
 
 ## Run
 
